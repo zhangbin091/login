@@ -1,0 +1,140 @@
+'use strict';
+
+/**
+ * 极验 4.0 服务端接入。
+ *
+ * 真实模式（配置了 GEETEST_ID / GEETEST_KEY）：
+ *   - 前端用 gt4.js 调 initGeetest4 完成第一段验证（register 由 gt4.js 直接和极验通信）
+ *   - 拿到 { lot_number, captcha_output, pass_token, gen_time } 后交给后端
+ *   - 后端做二次校验（本文件的 validateReal）
+ *
+ * 模拟模式（默认）：
+ *   - prepare() 发放一个一次性的 lot_number
+ *   - 前端用本地滑块组件完成"验证"
+ *   - validateMock() 核对 lot_number + 票据，保证流程完整可跑
+ */
+
+const crypto = require('crypto');
+const config = require('../config');
+
+const REGISTER_API = 'https://gcaptcha4.geetest.com/register';
+const VALIDATE_API = 'https://gcaptcha4.geetest.com/validate';
+
+/** lot_number -> 过期时间戳（模拟模式用） */
+const mockTickets = new Map();
+
+function isRealMode() {
+  return Boolean(config.geetest.captchaId && config.geetest.captchaKey);
+}
+
+/** 清理过期的模拟票据 */
+function sweepMockTickets() {
+  const now = Date.now();
+  for (const [lotNumber, expireAt] of mockTickets) {
+    if (expireAt <= now) mockTickets.delete(lotNumber);
+  }
+}
+setInterval(sweepMockTickets, 60 * 1000).unref();
+
+/**
+ * 前端初始化所需的下发数据。
+ * @returns {Promise<{mode:'gt4'|'mock', captchaId?:string, scriptUrl?:string, lotNumber?:string}>}
+ */
+async function prepare() {
+  if (!isRealMode()) {
+    const lotNumber = crypto.randomUUID();
+    mockTickets.set(lotNumber, Date.now() + config.geetest.mockTtlMs);
+    return { mode: 'mock', lotNumber };
+  }
+
+  // 真实模式：gt4.js 会自己走 register，这里只做一次探活，
+  // 探活失败则降级到本地模式，避免极验抖动导致用户完全无法登录。
+  try {
+    const challenge = crypto.randomUUID();
+    const timestamp = Date.now();
+    const digest = crypto
+      .createHash('md5')
+      .update(config.geetest.captchaId + config.geetest.captchaKey + timestamp)
+      .digest('hex');
+
+    const url =
+      `${REGISTER_API}?captcha_id=${encodeURIComponent(config.geetest.captchaId)}` +
+      `&challenge=${challenge}&client_type=web&lang=zh-cn&pt=1&digest=${digest}`;
+
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    const data = await res.json();
+    if (data && data.status === 'success') {
+      return { mode: 'gt4', captchaId: config.geetest.captchaId, scriptUrl: config.geetest.scriptUrl };
+    }
+    console.warn('[geetest] register 返回异常，降级为本地验证:', data);
+  } catch (err) {
+    console.warn('[geetest] register 请求失败，降级为本地验证:', err.message);
+  }
+
+  const lotNumber = crypto.randomUUID();
+  mockTickets.set(lotNumber, Date.now() + config.geetest.mockTtlMs);
+  return { mode: 'mock', lotNumber, degraded: true };
+}
+
+/**
+ * 校验前端回传的极验参数。
+ * @param {{lot_number:string, captcha_output:string, pass_token:string, gen_time:string}} params
+ * @returns {Promise<{ok:boolean, reason?:string}>}
+ */
+async function validate(params) {
+  if (!params || !params.lot_number) {
+    return { ok: false, reason: '缺少验证参数' };
+  }
+  return isRealMode() ? validateReal(params) : validateMock(params);
+}
+
+/** 真实模式：向极验发起二次校验 */
+async function validateReal(params) {
+  const { lot_number: lotNumber, captcha_output: captchaOutput, pass_token: passToken, gen_time: genTime } = params;
+
+  try {
+    // sign_token = HMAC-SHA256(lot_number, captcha_key)
+    const signToken = crypto
+      .createHmac('sha256', config.geetest.captchaKey)
+      .update(lotNumber)
+      .digest('hex');
+
+    const body = new URLSearchParams({
+      lot_number: lotNumber,
+      captcha_output: captchaOutput,
+      pass_token: passToken,
+      gen_time: genTime,
+      sign_token: signToken,
+    });
+
+    const res = await fetch(`${VALIDATE_API}?captcha_id=${encodeURIComponent(config.geetest.captchaId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+      signal: AbortSignal.timeout(5000),
+    });
+
+    const data = await res.json();
+    if (data.result === 'success') return { ok: true };
+    return { ok: false, reason: data.reason || '验证失败' };
+  } catch (err) {
+    console.error('[geetest] validate 请求失败:', err.message);
+    return { ok: false, reason: '验证服务暂不可用' };
+  }
+}
+
+/** 模拟模式：核对一次性 lot_number */
+async function validateMock(params) {
+  const { lot_number: lotNumber, captcha_output: captchaOutput } = params;
+
+  const expireAt = mockTickets.get(lotNumber);
+  if (!expireAt) return { ok: false, reason: '验证已失效，请重新验证' };
+  mockTickets.delete(lotNumber); // 一次性，防重放
+
+  if (expireAt <= Date.now()) return { ok: false, reason: '验证已过期，请重新验证' };
+  if (captchaOutput !== 'mock-pass') return { ok: false, reason: '验证未通过' };
+
+  return { ok: true };
+}
+
+module.exports = { prepare, validate, isRealMode };

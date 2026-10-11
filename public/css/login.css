@@ -1,0 +1,421 @@
+/* ---------- 基础 ---------- */
+:root {
+  --brand: #3b6ef0;
+  --brand-dark: #2f59c4;
+  --text: #1f2430;
+  --text-sub: #6b7280;
+  --line: #e5e7eb;
+  --bg: #f5f7fb;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* 未编译完成前隐藏 Vue 模板，避免闪一下 {{ }} */
+[v-cloak] { display: none; }
+
+.page {
+  position: relative;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow: hidden;
+}
+
+.page__bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(900px 500px at 12% 8%, rgba(59, 110, 240, .16), transparent 60%),
+    radial-gradient(700px 480px at 88% 92%, rgba(124, 92, 240, .16), transparent 62%);
+  pointer-events: none;
+}
+
+.page__footer {
+  position: relative;
+  margin-top: 22px;
+  font-size: 12px;
+  color: #9aa1ad;
+}
+
+/* ---------- 卡片 ---------- */
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  padding: 36px 34px 30px;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 18px 50px rgba(23, 34, 62, .12);
+}
+
+.card--success {
+  max-width: 420px;
+  text-align: center;
+  padding: 40px 34px 32px;
+}
+
+.card__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.card__logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand), #7c5cf0);
+  color: #fff;
+  font-weight: 700;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card__brand-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+.card__title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.card__subtitle {
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.card__tip {
+  margin-top: 18px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f6f8fc;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-sub);
+}
+
+.card__tip code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eaeef7;
+  color: var(--brand-dark);
+  font-size: 12px;
+}
+
+/* ---------- 表单微调 ---------- */
+.card .el-form-item { margin-bottom: 20px; }
+.card .el-input__inner { height: 42px; line-height: 42px; border-radius: 8px; }
+.card .el-button { width: 100%; height: 42px; border-radius: 8px; font-size: 15px; }
+
+/* ---------- 短信弹窗 ---------- */
+.sms-dialog .el-dialog { border-radius: var(--radius); overflow: hidden; }
+.sms-dialog .el-dialog__header { padding: 20px 22px 0; }
+.sms-dialog .el-dialog__body { padding: 18px 22px 8px; }
+.sms-dialog .el-dialog__footer { padding: 8px 22px 22px; }
+
+.sms__desc {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.6;
+}
+
+.sms__label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.sms__phones { width: 100%; }
+
+.sms__phones .el-radio {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  margin: 0 0 8px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  transition: all .16s;
+}
+
+.sms__phones .el-radio:hover { border-color: #c3cee6; }
+
+.sms__phones .el-radio.is-checked {
+  border-color: var(--brand);
+  background: #f2f6ff;
+}
+
+.sms__phones .el-radio__label {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 10px;
+  font-size: 14px;
+}
+
+.sms__tag {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-sub);
+  font-weight: 400;
+}
+
+.sms__field { margin-top: 18px; }
+
+.sms__field .el-input__inner {
+  height: 42px;
+  line-height: 42px;
+  letter-spacing: 3px;
+  border-radius: 8px;
+}
+
+.sms__code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sms__code-row .el-input { flex: 1; }
+
+.sms__code-row .sms__send-btn {
+  flex: none;
+  width: 120px;
+  height: 42px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.sms__hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #9aa1ad;
+}
+
+/* ---------- 成功页 ---------- */
+.success__icon {
+  width: 66px;
+  height: 66px;
+  margin: 0 auto 18px;
+}
+
+.success__circle,
+.success__check {
+  stroke: #34c759;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.success__circle {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: draw-circle .5s ease forwards;
+}
+
+.success__check {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: draw-check .3s .45s ease forwards;
+}
+
+@keyframes draw-circle { to { stroke-dashoffset: 0; } }
+@keyframes draw-check { to { stroke-dashoffset: 0; } }
+
+.detail {
+  margin: 24px 0 26px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.detail__row {
+  display: flex;
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail__row:last-child { border-bottom: none; }
+
+.detail__row dt {
+  width: 96px;
+  flex: none;
+  color: var(--text-sub);
+}
+
+.detail__row dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .16s;
+}
+
+.btn--ghost {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+}
+
+.btn--ghost:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* ---------- 模拟极验滑块（仅 mock 模式使用） ---------- */
+.gt-mock-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(17, 24, 39, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .18s;
+}
+
+.gt-mock-mask.is-open { opacity: 1; }
+
+.gt-mock {
+  width: 320px;
+  padding: 20px 22px 22px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+  transform: translateY(8px);
+  transition: transform .18s;
+}
+
+.gt-mock-mask.is-open .gt-mock { transform: translateY(0); }
+
+.gt-mock__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.gt-mock__sub {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-bottom: 16px;
+}
+
+.gt-mock__panel {
+  position: relative;
+  height: 96px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #eef2fb, #e4ebfa);
+  border: 1px solid #dde4f3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #8a93a6;
+}
+
+.gt-mock__track {
+  position: relative;
+  height: 42px;
+  margin-top: 14px;
+  border-radius: 8px;
+  background: #f1f3f8;
+  border: 1px solid var(--line);
+  user-select: none;
+}
+
+.gt-mock__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: #dbe6ff;
+  border-radius: 8px 0 0 8px;
+}
+
+.gt-mock__knob {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 62px;
+  height: 40px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #d6dce9;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gt-mock__knob:active { cursor: grabbing; }
+
+.gt-mock__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #9aa1ad;
+  pointer-events: none;
+}
+
+.gt-mock__close {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  border: none;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #b3bac6;
+  cursor: pointer;
+}
+
+.gt-mock__close:hover { color: #6b7280; }

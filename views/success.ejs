@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/vendor/element-ui/lib/theme-chalk/index.css">
+  <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+  <div class="page">
+    <div class="page__bg"></div>
+
+    <div class="card card--success">
+      <div class="success__icon">
+        <svg viewBox="0 0 52 52" aria-hidden="true">
+          <circle class="success__circle" cx="26" cy="26" r="24" fill="none"/>
+          <path class="success__check" fill="none" d="M14 27l8 8 16-17"/>
+        </svg>
+      </div>
+
+      <h1 class="card__title">登录成功</h1>
+      <p class="card__subtitle">欢迎回来，<%= user.nickname || user.username %></p>
+
+      <dl class="detail">
+        <div class="detail__row">
+          <dt>账号</dt>
+          <dd><%= user.username %></dd>
+        </div>
+        <div class="detail__row">
+          <dt>用户 ID</dt>
+          <dd><%= user.id %></dd>
+        </div>
+        <div class="detail__row">
+          <dt>登录手机号</dt>
+          <dd><%= user.phone %></dd>
+        </div>
+        <div class="detail__row">
+          <dt>登录时间</dt>
+          <dd><%= new Date(user.loginAt).toLocaleString('zh-CN') %></dd>
+        </div>
+      </dl>
+
+      <button type="button" class="btn btn--ghost" id="logoutBtn">退出登录</button>
+    </div>
+
+    <footer class="page__footer">© <%= year %> Login Flow Demo</footer>
+  </div>
+
+  <script src="/js/require.config.js"></script>
+  <script src="/vendor/requirejs/require.js" data-main="/js/success.js"></script>
+</body>
+</html>

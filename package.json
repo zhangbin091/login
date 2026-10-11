@@ -1,0 +1,22 @@
+{
+  "name": "login-flow-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "登录流程演示：极验验证 -> 账密校验 -> 账号查询 -> 短信验证码 -> 登录成功",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "test": "node scripts/smoke-test.js",
+    "test:e2e": "node scripts/e2e-browser.js"
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "element-ui": "^2.15.14",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "jquery": "^3.7.1",
+    "requirejs": "^2.3.7",
+    "vue": "^2.7.16"
+  }
+}
