@@ -10,11 +10,17 @@ module.exports = {
 
   /**
    * 极验 4.0（行为验证）。
-   * 未配置 GEETEST_ID / GEETEST_KEY 时自动降级为本地模拟验证（mock），
+   * 配置了 ID/KEY 即走真实验证；留空则自动降级为本地模拟验证（mock），
    * 保证项目 clone 下来 npm start 就能跑通完整流程。
    * 申请地址：https://www.geetest.com/
+   *
+   * 注意：captchaKey 属于敏感信息，生产环境请改用环境变量注入，
+   *      不要把真实 KEY 提交到仓库。
    */
   geetest: {
+    // 设为 1 可强制关闭真实验证、切回本地模拟（跑自动化测试时用得上）
+    // PowerShell: $env:GEETEST_DISABLED=1; npm start
+    disabled: process.env.GEETEST_DISABLED === '1',
     captchaId: process.env.GEETEST_ID || '3fcca12fad61a25061886999c1b57310',
     captchaKey: process.env.GEETEST_KEY || '3227d058da508d151a0a9d5b1dcf5d01',
     // gt4.js 的加载地址，真实模式下前端会动态加载它

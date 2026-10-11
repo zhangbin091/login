@@ -5,6 +5,7 @@ const express = require('express');
 const session = require('express-session');
 
 const config = require('./config');
+const geetest = require('./services/geetest');
 const pagesRouter = require('./routes/pages');
 const apiRouter = require('./routes/api');
 
@@ -64,7 +65,7 @@ app.use((err, req, res, next) => {
 
 app.listen(config.port, () => {
   console.log(`\n  登录流程 Demo 已启动: http://localhost:${config.port}`);
-  console.log(`  极验模式: ${config.geetest.captchaId && config.geetest.captchaKey ? '真实（gt4）' : '本地模拟（mock）'}`);
+  console.log(`  极验模式: ${geetest.isRealMode() ? '真实（gt4）' : '本地模拟（mock）'}`);
   console.log('  测试账号: admin / admin123  |  test / test123\n');
 });
 

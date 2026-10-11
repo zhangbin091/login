@@ -173,8 +173,41 @@ const DRIVER = `
   loginBtn.click();
   log.push('已点击登录');
 
-  // ---- 3. 等待极验滑块出现并拖动 ----
-  await waitFor(() => $('.gt-mock__knob'), '极验滑块弹层');
+  // ---- 3. 等待验证弹层出现（真实极验 或 本地模拟）----
+  let isRealGeetest = false;
+  try {
+    await waitFor(
+      () => $('.gt-mock__knob') || $('[class*=geetest_box_wrap]') || $('[class*=geetest_wrap]'),
+      '验证弹层',
+      25000
+    );
+  } catch (e) {
+    throw new Error(
+      e.message + ' | 出现过的提示: ' + JSON.stringify(seenMessages) +
+      ' | 当前 URL: ' + location.href
+    );
+  }
+
+  isRealGeetest = !$('.gt-mock__knob');
+
+  if (isRealGeetest) {
+    // 真实极验：滑块必须由真人拖动，合成事件无法通过（这正是它的防机器人设计）
+    const gtNodes = $$('[class*=geetest],[id*=geetest]');
+    log.push('检测到真实极验弹层（已渲染 ' + gtNodes.length + ' 个节点）');
+    return {
+      ok: true,
+      realMode: true,
+      log,
+      messages: seenMessages,
+      gt: {
+        initGeetest4: typeof window.initGeetest4,
+        scriptLoaded: !!document.getElementById('geetest-gt4-js'),
+        nodeCount: gtNodes.length,
+        hasPuzzle: !!(document.querySelector('[class*=geetest_wrap]') && document.querySelector('[class*=geetest_container]')),
+      }
+    };
+  }
+
   const knob = $('.gt-mock__knob');
   const track = $('.gt-mock__track');
   const kRect = knob.getBoundingClientRect();
@@ -302,6 +335,23 @@ async function main() {
     console.log('交互步骤:');
     result.log.forEach((line) => console.log('  · ' + line));
     console.log('');
+
+    if (result.realMode) {
+      console.log('  ✓ 真实极验已加载（initGeetest4: ' + result.gt.initGeetest4 + '）');
+      console.log('  ✓ gt4.js 已注入: ' + result.gt.scriptLoaded);
+      console.log('  ✓ 极验 DOM 节点数: ' + result.gt.nodeCount);
+      console.log('  ✓ 拼图容器已渲染: ' + result.gt.hasPuzzle);
+      if (errors.length) {
+        console.log('\n页面 JS 异常:');
+        errors.forEach((e) => console.log('  ! ' + e));
+      }
+      console.log('\n真实极验的滑块必须由真人拖动，自动化到此为止。');
+      console.log('请在浏览器里手动完成滑块，确认能否走到短信验证弹窗。');
+      console.log('若要跑完整自动化流程：$env:GEETEST_DISABLED=1 后重启服务再执行。\n');
+      console.log('结果：真实模式组件加载正常\n');
+      process.exitCode = errors.length === 0 ? 0 : 1;
+      return;
+    }
 
     // ---- 7. 等待跳转到成功页（在 Node 侧轮询，避免执行上下文被销毁）----
     const finalUrl = await waitForTargetUrl(target.id, '/success', 20000);

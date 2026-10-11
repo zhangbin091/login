@@ -44,7 +44,9 @@ npm start          # http://localhost:3000
 | `admin` | `admin123` | 13800138000 / 13900139000 |
 | `test` | `test123` | 13612345678 |
 
-> 默认使用**本地模拟验证**（未配置极验 KEY），滑块拖到底即通过，方便直接跑通全流程。
+> `config/index.js` 里已内置一对极验 ID/KEY，因此**默认就是真实极验模式**，
+> 需要人工拖动滑块。想跑通全自动流程（滑块拖到底即通过），用 `GEETEST_DISABLED=1` 启动，
+> 详见「接入真实极验」。
 > 验证码会打印到服务端控制台，同时在页面上以通知形式回显（仅非生产环境）。
 
 ## 目录结构
@@ -124,7 +126,21 @@ GEETEST_ID=xxx GEETEST_KEY=xxx npm start
 
 配置后自动切换到 gt4 真实模式：前端加载 `gt4.js` 走行为验证，服务端用
 `HMAC-SHA256(lot_number, captcha_key)` 生成 `sign_token` 向极验发起二次校验。
-**极验探活失败时会自动降级为本地模拟验证**，避免验证服务抖动导致完全无法登录。
+
+模式只由「有没有配置 ID/KEY」决定，服务端**不做任何探活**。
+极验 v4 的 `/register` 是私有化部署 / 宕机兜底用的可选接口，SaaS 账号通常返回 403，
+v4 标准接入只需服务端实现 `/validate`，register 由浏览器里的 `gt4.js` 自己完成
+—— 拿它当模式开关会导致真实极验永远不生效。
+
+真实滑块必须由真人拖动，自动化测试跑不过去，需要时临时强制切回模拟：
+
+```bash
+# PowerShell
+$env:GEETEST_DISABLED="1"; npm start
+
+# bash
+GEETEST_DISABLED=1 npm start
+```
 
 ## 接入真实短信
 
@@ -147,7 +163,9 @@ GEETEST_ID=xxx GEETEST_KEY=xxx npm start
 ## 测试
 
 ```bash
-npm start            # 另开一个终端
+# 全自动用例需要「本地模拟」模式，先这样启动服务：
+$env:GEETEST_DISABLED="1"; npm start
+
 npm test             # 接口冒烟测试，18 项
 npm run test:e2e     # 真实浏览器端到端测试（需要本机有 Chrome / Edge）
 ```
@@ -155,6 +173,10 @@ npm run test:e2e     # 真实浏览器端到端测试（需要本机有 Chrome /
 `npm run test:e2e` 会通过 CDP 驱动无头浏览器，完整走一遍
 「填账密 → 拖极验滑块 → 账密校验 → 账号查询 → 短信弹窗 → 发送验证码 → 校验 → 跳转成功页」，
 并断言最终页面内容。
+
+两个脚本在**真实极验模式**下都会自我保护：`npm test` 检测到 `mode === 'gt4'`
+会打印提示并跳过（真实 token 无法自动构造），`npm run test:e2e` 则退化为
+「校验 gt4.js 是否加载、弹层 DOM 是否渲染」，不再假装跑完整流程。
 
 ## 已知取舍
 

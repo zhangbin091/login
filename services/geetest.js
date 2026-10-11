@@ -4,26 +4,30 @@
  * 极验 4.0 服务端接入。
  *
  * 真实模式（配置了 GEETEST_ID / GEETEST_KEY）：
- *   - 前端用 gt4.js 调 initGeetest4 完成第一段验证（register 由 gt4.js 直接和极验通信）
+ *   - 前端加载 gt4.js 调 initGeetest4，register 由 gt4.js 在浏览器里自行完成
  *   - 拿到 { lot_number, captcha_output, pass_token, gen_time } 后交给后端
  *   - 后端做二次校验（本文件的 validateReal）
  *
- * 模拟模式（默认）：
+ * 模拟模式（未配置 KEY）：
  *   - prepare() 发放一个一次性的 lot_number
  *   - 前端用本地滑块组件完成"验证"
  *   - validateMock() 核对 lot_number + 票据，保证流程完整可跑
+ *
+ * 关于 register：极验 v4 的 /register 是给私有化部署 / 宕机兜底用的可选接口，
+ * SaaS 账号通常直接返回 403。v4 标准接入只需要服务端实现 /validate，
+ * 所以这里**不**用 register 探活来决定模式——否则真实极验永远不生效。
  */
 
 const crypto = require('crypto');
 const config = require('../config');
 
-const REGISTER_API = 'https://gcaptcha4.geetest.com/register';
 const VALIDATE_API = 'https://gcaptcha4.geetest.com/validate';
 
 /** lot_number -> 过期时间戳（模拟模式用） */
 const mockTickets = new Map();
 
 function isRealMode() {
+  if (config.geetest.disabled) return false;
   return Boolean(config.geetest.captchaId && config.geetest.captchaKey);
 }
 
@@ -38,42 +42,21 @@ setInterval(sweepMockTickets, 60 * 1000).unref();
 
 /**
  * 前端初始化所需的下发数据。
+ * 模式只由"是否配置了 ID/KEY"决定，不做网络探活，避免因第三方接口抖动而误降级。
  * @returns {Promise<{mode:'gt4'|'mock', captchaId?:string, scriptUrl?:string, lotNumber?:string}>}
  */
 async function prepare() {
-  if (!isRealMode()) {
-    const lotNumber = crypto.randomUUID();
-    mockTickets.set(lotNumber, Date.now() + config.geetest.mockTtlMs);
-    return { mode: 'mock', lotNumber };
-  }
-
-  // 真实模式：gt4.js 会自己走 register，这里只做一次探活，
-  // 探活失败则降级到本地模式，避免极验抖动导致用户完全无法登录。
-  try {
-    const challenge = crypto.randomUUID();
-    const timestamp = Date.now();
-    const digest = crypto
-      .createHash('md5')
-      .update(config.geetest.captchaId + config.geetest.captchaKey + timestamp)
-      .digest('hex');
-
-    const url =
-      `${REGISTER_API}?captcha_id=${encodeURIComponent(config.geetest.captchaId)}` +
-      `&challenge=${challenge}&client_type=web&lang=zh-cn&pt=1&digest=${digest}`;
-
-    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
-    const data = await res.json();
-    if (data && data.status === 'success') {
-      return { mode: 'gt4', captchaId: config.geetest.captchaId, scriptUrl: config.geetest.scriptUrl };
-    }
-    console.warn('[geetest] register 返回异常，降级为本地验证:', data);
-  } catch (err) {
-    console.warn('[geetest] register 请求失败，降级为本地验证:', err.message);
+  if (isRealMode()) {
+    return {
+      mode: 'gt4',
+      captchaId: config.geetest.captchaId,
+      scriptUrl: config.geetest.scriptUrl,
+    };
   }
 
   const lotNumber = crypto.randomUUID();
   mockTickets.set(lotNumber, Date.now() + config.geetest.mockTtlMs);
-  return { mode: 'mock', lotNumber, degraded: true };
+  return { mode: 'mock', lotNumber };
 }
 
 /**

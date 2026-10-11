@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安全验证（极验）触发逻辑与弹窗加载说明</title>
+<style>
+  :root {
+    --brand: #3b6ef0;
+    --brand-soft: #eef3ff;
+    --text: #1f2430;
+    --sub: #6b7280;
+    --line: #e5e7eb;
+    --bg: #f7f8fc;
+    --code-bg: #1e2430;
+    --code-fg: #d7dce6;
+    --warn: #b45309;
+    --warn-bg: #fffbeb;
+    --warn-line: #fcd34d;
+    --ok: #047857;
+    --ok-bg: #ecfdf5;
+    --ok-line: #6ee7b7;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+      'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  /* ---------- 头部 ---------- */
+  header {
+    padding: 56px 0 32px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 36px;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: 30px;
+    letter-spacing: -.4px;
+  }
+
+  .subtitle {
+    margin: 0;
+    color: var(--sub);
+    font-size: 15px;
+  }
+
+  .meta {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 999px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  /* ---------- 目录 ---------- */
+  nav.toc {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 40px;
+  }
+
+  nav.toc h2 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--sub);
+    font-weight: 600;
+  }
+
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc li { margin: 4px 0; }
+  nav.toc a { color: var(--brand); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* ---------- 章节 ---------- */
+  section { margin-bottom: 52px; }
+
+  h2.sec {
+    font-size: 21px;
+    margin: 0 0 6px;
+    padding-top: 8px;
+  }
+
+  h2.sec .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 27px;
+    height: 27px;
+    margin-right: 10px;
+    border-radius: 8px;
+    background: var(--brand);
+    color: #fff;
+    font-size: 14px;
+    vertical-align: 2px;
+  }
+
+  h3 {
+    font-size: 16px;
+    margin: 28px 0 8px;
+  }
+
+  p { margin: 12px 0; }
+
+  .lead { color: var(--sub); margin-bottom: 22px; }
+
+  code.inline {
+    padding: 1.5px 6px;
+    border-radius: 5px;
+    background: #eef1f7;
+    color: #b3325a;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13.5px;
+  }
+
+  /* ---------- 代码块 ---------- */
+  pre {
+    position: relative;
+    margin: 16px 0;
+    padding: 16px 18px;
+    background: var(--code-bg);
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--code-fg);
+  }
+
+  pre code { white-space: pre; }
+
+  .cmt { color: #7b8698; }
+  .kw  { color: #c792ea; }
+  .str { color: #a5d6a7; }
+  .fn  { color: #82aaff; }
+  .num2 { color: #f78c6c; }
+
+  /* 高亮某一行 */
+  .hl {
+    display: inline-block;
+    width: 100%;
+    margin: 0 -18px;
+    padding: 0 18px;
+    background: rgba(59, 110, 240, .22);
+    border-left: 3px solid #6f9bff;
+  }
+
+  .filelabel {
+    display: inline-block;
+    margin: 18px 0 -8px;
+    padding: 3px 10px;
+    border-radius: 6px 6px 0 0;
+    background: #2b3340;
+    color: #9fb0c9;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12px;
+  }
+
+  /* ---------- 流程链 ---------- */
+  .chain {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin: 20px 0;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    position: relative;
+    padding-bottom: 20px;
+  }
+
+  .step:last-child { padding-bottom: 0; }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 30px;
+    bottom: 0;
+    width: 2px;
+    background: var(--line);
+  }
+
+  .step:last-child::before { display: none; }
+
+  .step .dot {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--brand-soft);
+    color: var(--brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step.active .dot { background: var(--brand); color: #fff; }
+
+  .step .body { flex: 1; }
+
+  .step .title {
+    font-weight: 600;
+    font-size: 14.5px;
+  }
+
+  .step .title .loc {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--sub);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  .step .desc {
+    font-size: 13.5px;
+    color: var(--sub);
+    margin-top: 2px;
+  }
+
+  .step .desc code {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12.5px;
+    color: #b3325a;
+    background: #f1f3f8;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- 提示框 ---------- */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-left: 4px solid;
+    font-size: 14px;
+  }
+
+  .callout .h {
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .callout p:last-child { margin-bottom: 0; }
+  .callout p:first-child { margin-top: 0; }
+
+  .callout.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+  .callout.warn .h { color: var(--warn); }
+
+  .callout.ok { background: var(--ok-bg); border-color: var(--ok-line); }
+  .callout.ok .h { color: var(--ok); }
+
+  .callout.info { background: #fff; border-color: var(--brand); }
+  .callout.info .h { color: var(--brand); }
+
+  /* ---------- 表格 ---------- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13.5px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  th {
+    background: #fafbfd;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  td code {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12.5px;
+    color: #b3325a;
+    background: #f1f3f8;
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .lnk {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--brand);
+    white-space: nowrap;
+  }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    color: var(--sub);
+    font-size: 13px;
+  }
+
+  @media print {
+    body { background: #fff; }
+    nav.toc { break-inside: avoid; }
+    section { break-inside: avoid-page; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>安全验证（极验）触发逻辑与弹窗加载说明</h1>
+  <p class="subtitle">登录流程 Demo &middot; Express · EJS · RequireJS · jQuery · Vue 2 · ElementUI</p>
+  <div class="meta">
+    <span class="chip">触发点：login.js:65</span>
+    <span class="chip">弹窗显示：geetest.js:72</span>
+    <span class="chip">服务端复核：api.js:92</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#s1">触发链路：从点击「登录」到弹出验证</a></li>
+    <li><a href="#s2">后端如何决定用真实极验还是本地模拟</a></li>
+    <li><a href="#s3">真实模式：弹窗是怎么被加载出来的</a></li>
+    <li><a href="#s4">模拟模式：本地滑块的来源</a></li>
+    <li><a href="#s5">验证结果如何被服务端复核</a></li>
+    <li><a href="#s6">一次真实排障：配了 KEY 却仍走模拟（已修复）</a></li>
+    <li><a href="#s7">关键代码位置索引</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ -->
+<section id="s1">
+  <h2 class="sec"><span class="num">1</span>触发链路：从点击「登录」到弹出验证</h2>
+  <p class="lead">
+    核心结论：安全验证是在<strong>账密接口之前</strong>触发的。验证没通过，登录请求根本不会发出。
+  </p>
+
+  <div class="chain">
+    <div class="step">
+      <div class="dot">1</div>
+      <div class="body">
+        <div class="title">按钮点击<span class="loc">login.js:52</span></div>
+        <div class="desc"><code>onSubmit()</code> —— 登录按钮 <code>@click</code> 绑定的就是它；同时拦截了表单默认提交。</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">2</div>
+      <div class="body">
+        <div class="title">表单校验<span class="loc">login.js:55-57</span></div>
+        <div class="desc">ElementUI 的 <code>this.$refs.form.validate()</code> 校验通过后调用 <code>doLogin()</code>，不通过直接返回。</div>
+      </div>
+    </div>
+
+    <div class="step active">
+      <div class="dot">3</div>
+      <div class="body">
+        <div class="title">★ 触发安全验证<span class="loc">login.js:65</span></div>
+        <div class="desc">
+          <code>var gtParams = await geetest.verify();</code><br>
+          这一行是<strong>整个安全验证的唯一触发点</strong>。它被 <code>await</code>，验证弹窗不 resolve，后续流程就不会执行。
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">4</div>
+      <div class="body">
+        <div class="title">拉取验证配置<span class="loc">geetest.js:206-212</span></div>
+        <div class="desc">
+          <code>verify()</code> 先调 <code>api.geetestRegister()</code> → <code>POST /api/geetest/register</code>，
+          再按后端返回的 <code>mode</code> 二选一：真实分支 <code>verifyReal()</code> / 模拟分支 <code>verifyMock()</code>。
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="dot">5</div>
+      <div class="body">
+        <div class="title">验证通过，继续登录<span class="loc">login.js:68-72</span></div>
+        <div class="desc">拿到四个验证参数后才调用账密接口 <code>POST /api/login/credentials</code>。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filelabel">public/js/modules/login.js</div>
+  <pre><code><span class="num2">52</span>  onSubmit: function () {
+<span class="num2">53</span>    var self = this;
+<span class="num2">54</span>    if (this.loading) return;
+<span class="num2">55</span>    this.$refs.form.validate(function (valid) {
+<span class="num2">56</span>      if (valid) self.doLogin();
+<span class="num2">57</span>    });
+<span class="num2">58</span>  },
+<span class="num2">59</span>
+<span class="num2">60</span>  doLogin: async function () {
+<span class="num2">61</span>    this.loading = true;
+<span class="num2">62</span>    try {
+<span class="num2">63</span>      <span class="cmt">// ① 极验验证</span>
+<span class="hl"><span class="num2">65</span>      var gtParams = await geetest.verify();</span>
+<span class="num2">66</span>
+<span class="num2">67</span>      <span class="cmt">// ② 服务端校验用户名 / 密码（并二次校验极验结果）</span>
+<span class="num2">68</span>      var credential = await api.loginCredentials({
+<span class="num2">69</span>        username: this.form.username,
+<span class="num2">70</span>        password: this.form.password,
+<span class="num2">71</span>        geetest: gtParams
+<span class="num2">72</span>      });</code></pre>
+
+  <div class="callout info">
+    <span class="h">为什么顺序不能反</span>
+    <p>
+      如果把 <code>geetest.verify()</code> 放在账密校验之后，攻击者可以直接裸调登录接口绕过人机验证。
+      放在前面，配合服务端的二次复核（见第 5 节），才能同时挡住「脚本刷登录」和「篡改前端跳过验证」。
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s2">
+  <h2 class="sec"><span class="num">2</span>后端如何决定用真实极验还是本地模拟</h2>
+  <p class="lead">
+    前端不自作判断，模式由 <code class="inline">POST /api/geetest/register</code> 的返回值决定；
+    而它返回什么，只看<strong>有没有配置 ID/KEY</strong>，不做任何网络探活。
+  </p>
+
+  <div class="filelabel">services/geetest.js · prepare()</div>
+  <pre><code><span class="num2">29</span> function isRealMode() {
+<span class="num2">30</span>   if (config.geetest.disabled) <span class="kw">return false</span>;
+<span class="num2">31</span>   return Boolean(config.geetest.captchaId &amp;&amp; config.geetest.captchaKey);
+<span class="num2">32</span> }
+<span class="num2">...</span>
+<span class="num2">48</span> async function prepare() {
+<span class="hl"><span class="num2">49</span>   if (isRealMode()) {
+<span class="num2">50</span>     return {
+<span class="num2">51</span>       mode: <span class="str">'gt4'</span>,
+<span class="num2">52</span>       captchaId: config.geetest.captchaId,
+<span class="num2">53</span>       scriptUrl: config.geetest.scriptUrl,
+<span class="num2">54</span>     };
+<span class="num2">55</span>   }</span>
+<span class="num2">56</span>
+<span class="num2">57</span>   const lotNumber = crypto.randomUUID();
+<span class="num2">58</span>   mockTickets.set(lotNumber, Date.now() + config.geetest.mockTtlMs);
+<span class="num2">59</span>   return { mode: <span class="str">'mock'</span>, lotNumber };
+<span class="num2">60</span> }</code></pre>
+
+  <table>
+    <thead>
+      <tr><th>入口 / 分支</th><th>行号</th><th>返回</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>已配置 <code>captchaId</code> + <code>captchaKey</code>（且未强制关闭）</td>
+        <td class="lnk">49-55</td>
+        <td><code>{ mode: 'gt4', captchaId, scriptUrl }</code></td>
+      </tr>
+      <tr>
+        <td>未配置 ID/KEY，或设了 <code>GEETEST_DISABLED=1</code></td>
+        <td class="lnk">57-59</td>
+        <td><code>{ mode: 'mock', lotNumber }</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout ok">
+    <span class="h">✓ 为什么不做「探活」</span>
+    <p>
+      早先的写法是：先向 <code class="inline">/register</code> 发一次请求探活，探活失败就降级到本地模拟。
+      但极验 v4 的 <code class="inline">/register</code> 是给「私有化部署 / 宕机兜底」准备的可选接口，
+      SaaS 账号通常直接返回 <strong>403</strong>；v4 标准接入<strong>只需要服务端实现 <code class="inline">/validate</code></strong>，
+      浏览器里的 <code class="inline">gt4.js</code> 自己会完成 register。
+      把探活当模式开关，结果就是「真实极验永远不生效」，与降级的初衷正好相反。详见第 6 节。
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s3">
+  <h2 class="sec"><span class="num">3</span>真实模式：弹窗是怎么被加载出来的</h2>
+  <p class="lead">
+    <code class="inline">gt4.js</code> 不在 npm 依赖里，是运行时从极验 CDN 动态拉取的。整个弹窗由极验 SDK 自己创建。
+  </p>
+
+  <div class="filelabel">public/js/modules/geetest.js · verifyReal()</div>
+  <pre><code><span class="num2">19</span> function loadScript(src) {
+<span class="num2">20</span>   return new Promise(function (resolve, reject) {
+<span class="num2">21</span>     var existed = document.getElementById(GT4_SCRIPT_ID);
+<span class="num2">22</span>     if (existed) {
+<span class="num2">24</span>       if (window.initGeetest4) return resolve();      <span class="cmt">// 已加载完成，复用</span>
+<span class="num2">26</span>       existed.addEventListener(<span class="str">'load'</span>, resolve, { once: <span class="kw">true</span> });
+<span class="num2">27</span>       existed.addEventListener(<span class="str">'error'</span>, ..., { once: <span class="kw">true</span> });
+<span class="num2">28</span>       return;
+<span class="num2">29</span>     }
+<span class="num2">31</span>     var script = document.createElement(<span class="str">'script'</span>);   <span class="cmt">// ← 动态建 script</span>
+<span class="num2">32</span>     script.id = GT4_SCRIPT_ID;
+<span class="num2">33</span>     script.src = src;
+<span class="num2">34</span>     script.async = <span class="kw">true</span>;
+<span class="num2">35</span>     script.onload = function () { resolve(); };
+<span class="num2">37</span>     document.head.appendChild(script);                <span class="cmt">// ← 插入 head</span>
+<span class="num2">38</span>   });
+<span class="num2">39</span> }
+<span class="num2">...</span>
+<span class="num2">52</span> function verifyReal(config) {
+<span class="num2">53</span>   return loadScript(config.scriptUrl || <span class="str">'https://static.geetest.com/v4/gt4.js'</span>).then(function () {
+<span class="num2">54</span>     return new Promise(function (resolve, reject) {
+<span class="num2">59</span>       window.initGeetest4(
+<span class="num2">60</span>         {
+<span class="num2">61</span>           captchaId: config.captchaId,
+<span class="num2">62</span>           product: <span class="str">'bind'</span>,      <span class="cmt">// 点击后弹出浮层（而非嵌入式条）</span>
+<span class="num2">63</span>           language: <span class="str">'zho'</span>,
+<span class="num2">64</span>           riskType: <span class="str">'slide'</span>,
+<span class="num2">65</span>           hideBar: [<span class="str">'close'</span>]
+<span class="num2">66</span>         },
+<span class="num2">67</span>         function (captchaObj) {
+<span class="num2">68</span>           activeCaptcha = captchaObj;
+<span class="num2">70</span>           captchaObj
+<span class="hl"><span class="num2">71</span>             .onReady(function () {
+<span class="num2">72</span>               captchaObj.showCaptcha();      <span class="cmt">// ★ 弹窗真正显示的瞬间</span>
+<span class="num2">73</span>             })</span>
+<span class="hl"><span class="num2">74</span>             .onSuccess(function () {
+<span class="num2">75</span>               activeCaptcha = null;
+<span class="num2">76</span>               resolve(captchaObj.getValidate());   <span class="cmt">// ★ 拿到四个参数</span>
+<span class="num2">77</span>             })</span>
+<span class="num2">78</span>             .onError(function () {
+<span class="num2">79</span>               activeCaptcha = null;
+<span class="num2">80</span>               reject({ message: <span class="str">'验证失败，请重试'</span> });
+<span class="num2">81</span>             })
+<span class="num2">82</span>             .onClose(function () {
+<span class="num2">83</span>               activeCaptcha = null;
+<span class="num2">84</span>               reject({ code: <span class="str">'CLOSE'</span> });          <span class="cmt">// 用户主动关闭</span>
+<span class="num2">85</span>             });
+<span class="num2">86</span>         }
+<span class="num2">87</span>       );
+<span class="num2">88</span>     });
+<span class="num2">89</span>   });
+<span class="num2">90</span> }</code></pre>
+
+  <h3>四个阶段</h3>
+  <table>
+    <thead>
+      <tr><th>阶段</th><th>代码</th><th>发生了什么</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>① 加载 SDK</strong></td>
+        <td class="lnk">19-39</td>
+        <td>动态创建 <code>&lt;script id="geetest-gt4-js" src="https://static.geetest.com/v4/gt4.js" async&gt;</code> 插入 <code>&lt;head&gt;</code>，靠 <code>onload</code> 继续。已加载过就复用，不重复插入。</td>
+      </tr>
+      <tr>
+        <td><strong>② 初始化</strong></td>
+        <td class="lnk">59-66</td>
+        <td>调 <code>initGeetest4()</code>。SDK 内部<strong>自己向极验服务器发起 register</strong>（实测是 <code>gcaptcha4.geetest.com/load?captcha_id=…</code>）——这才是 v4 真实接入中 register 发生的唯一场所，服务端不参与——然后构建浮层 DOM。此时弹窗<strong>还没显示</strong>。</td>
+      </tr>
+      <tr>
+        <td><strong>③ 显示弹窗</strong></td>
+        <td class="lnk">71-73</td>
+        <td><code>onReady</code> 回调里调 <code>showCaptcha()</code> —— <strong>这一行才是弹窗出现在屏幕上的时刻</strong>。只初始化不调它，界面什么都不会发生。</td>
+      </tr>
+      <tr>
+        <td><strong>④ 取回结果</strong></td>
+        <td class="lnk">74-77</td>
+        <td><code>onSuccess</code> 里 <code>getValidate()</code> 返回 <code>{ lot_number, captcha_output, pass_token, gen_time }</code>，Promise resolve，控制权交回 <code>login.js:65</code>。</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout info">
+    <span class="h">为什么需要 destroyActive()</span>
+    <p>
+      <code>product: 'bind'</code> 的浮层 DOM 由极验 SDK 直接挂在 <code>document.body</code> 下，
+      <strong>不在 Vue 组件的 <code>$el</code> 子树里</strong>。Vue 销毁组件时管不到它，所以
+      <code>geetest.js:41-48</code> 用 <code>destroyActive()</code> 在每次 <code>verify()</code> 开头手动兜底销毁，
+      避免出异常后留下一个关不掉的浮层挡住页面。
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s4">
+  <h2 class="sec"><span class="num">4</span>模拟模式：本地滑块的来源</h2>
+  <p class="lead">
+    分镜完全不同：这里没有任何外部资源，DOM 是用 jQuery 现场拼字符串拼出来的。
+  </p>
+
+  <div class="filelabel">public/js/modules/geetest.js · verifyMock()</div>
+  <pre><code><span class="num2">97</span> function verifyMock(lotNumber) {
+<span class="num2">98</span>   return new Promise(function (resolve, reject) {
+<span class="num2">104</span>     var $mask = $(
+<span class="num2">105</span>       <span class="str">'&lt;div class="gt-mock-mask"&gt;'</span> +
+<span class="num2">106</span>         <span class="str">'&lt;div class="gt-mock"&gt;'</span> +
+<span class="num2">108</span>           <span class="str">'&lt;div class="gt-mock__title"&gt;安全验证&lt;/div&gt;'</span> +
+<span class="num2">111</span>           <span class="str">'&lt;div class="gt-mock__track"&gt;'</span> +
+<span class="num2">112</span>             <span class="str">'&lt;div class="gt-mock__fill"&gt;&lt;/div&gt;'</span> +
+<span class="num2">113</span>             <span class="str">'&lt;div class="gt-mock__knob"&gt;&amp;gt;&amp;gt;&lt;/div&gt;'</span> +
+<span class="num2">...</span>
+<span class="num2">118</span>     );
+<span class="num2">...</span>
+<span class="num2">125</span>     $(<span class="str">'body'</span>).append($mask);
+<span class="num2">126</span>     <span class="cmt">// 触发过渡动画</span>
+<span class="hl"><span class="num2">127</span>     window.requestAnimationFrame(function () { $mask.addClass(<span class="str">'is-open'</span>); });</span></code></pre>
+
+  <p>
+    第 127 行是关键：先用 <code class="inline">append</code> 把节点插入（此时 <code>opacity: 0</code>），
+    下一帧再补上 <code class="inline">is-open</code> 类，触发 <code class="inline">login.css</code> 里
+    <code class="inline">.gt-mock-mask</code> 的 <code class="inline">opacity</code> / <code class="inline">transform</code>
+    过渡动画。若在同一帧内插入并加类，浏览器会合并两次样式计算，动画不会播放。
+  </p>
+
+  <p>
+    拖动判定在 <code class="inline">onEnd</code>（<span class="lnk">geetest.js:163-183</span>）：
+    <code class="inline">progress &gt;= 0.98</code>（第 168 行）才算通过，
+    否则走第 181-182 行的 <code class="inline">animate()</code> 回弹到起点。通过后 resolve 出
+    <code class="inline">{ lot_number, captcha_output: 'mock-pass', ... }</code>，
+    形状与真实模式完全一致，所以上层 <code class="inline">login.js</code> 无需区分两种模式。
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<section id="s5">
+  <h2 class="sec"><span class="num">5</span>验证结果如何被服务端复核</h2>
+  <p class="lead">
+    前端说「我通过了」是不算数的 —— 这是防绕过的关键一环。
+  </p>
+
+  <div class="filelabel">routes/api.js · POST /api/login/credentials</div>
+  <pre><code><span class="num2">83</span>   const limit = rateLimit.check(username, ip);
+<span class="num2">84</span>   if (limit.locked) {
+<span class="num2">85</span>     return fail(res, CODES.TOO_FREQUENT, ...);
+<span class="num2">86</span>   }
+<span class="num2">87</span>
+<span class="num2">88</span>   <span class="cmt">// 2) 极验二次校验（必须在服务端做，否则前端可绕过）</span>
+<span class="num2">89</span>   try {
+<span class="hl"><span class="num2">92</span>     const result = await geetest.validate(gtParams);</span>
+<span class="num2">93</span>     if (!result.ok) {
+<span class="num2">94</span>       rateLimit.fail(username, ip);
+<span class="num2">95</span>       return fail(res, CODES.GEETEST_FAIL, result.reason || <span class="str">'验证未通过，请重新验证'</span>);
+<span class="num2">96</span>     }</code></pre>
+
+  <div class="filelabel">services/geetest.js · validateReal()</div>
+  <pre><code><span class="num2">92</span> async function validateReal(params) {
+<span class="num2">96</span>     <span class="cmt">// sign_token = HMAC-SHA256(lot_number, captcha_key)</span>
+<span class="num2">97</span>     const signToken = crypto
+<span class="num2">98</span>       .createHmac(<span class="str">'sha256'</span>, config.geetest.captchaKey)
+<span class="num2">99</span>       .update(lotNumber)
+<span class="num2">100</span>      .digest(<span class="str">'hex'</span>);
+<span class="num2">...</span>
+<span class="num2">110</span>     const res = await fetch(<span class="str">`${VALIDATE_API}?captcha_id=...`</span>, {
+<span class="num2">111</span>       method: <span class="str">'POST'</span>,
+<span class="num2">112</span>       headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/x-www-form-urlencoded'</span> },
+<span class="num2">113</span>       body,
+<span class="num2">114</span>       signal: AbortSignal.timeout(<span class="num2">5000</span>),
+<span class="num2">115</span>     });
+<span class="num2">117</span>     const data = await res.json();
+<span class="hl"><span class="num2">118</span>     if (data.result === <span class="str">'success'</span>) return { ok: <span class="kw">true</span> };</span>
+<span class="num2">119</span>     return { ok: <span class="kw">false</span>, reason: data.reason || <span class="str">'验证失败'</span> };
+<span class="num2">120</span>   } catch (err) {
+<span class="num2">122</span>     return { ok: <span class="kw">false</span>, reason: <span class="str">'验证服务暂不可用'</span> };
+<span class="num2">123</span>   }
+<span class="num2">124</span> }</code></pre>
+
+  <table>
+    <thead>
+      <tr><th>防绕过手段</th><th>实现位置</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>服务端向极验复核，不信任前端结论</td>
+        <td class="lnk">services/geetest.js:92-124</td>
+      </tr>
+      <tr>
+        <td>复核必须在账密校验之前</td>
+        <td class="lnk">routes/api.js:89-96</td>
+      </tr>
+      <tr>
+        <td>验证票据一次性，用完即删（防重放）</td>
+        <td class="lnk">services/geetest.js:132</td>
+      </tr>
+      <tr>
+        <td>验证失败计入限流，连续失败锁定</td>
+        <td class="lnk">routes/api.js:94</td>
+      </tr>
+      <tr>
+        <td>票据与 <code>sessionID</code> 绑定，不能跨会话搬运</td>
+        <td class="lnk">services/flow.js · get()</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<section id="s6">
+  <h2 class="sec"><span class="num">6</span>一次真实排障：配了 KEY 却仍走模拟（已修复）</h2>
+
+  <div class="callout warn">
+    <span class="h">⚠ 现象</span>
+    <p>
+      在 <code>config/index.js</code> 填入 <code>captchaId</code> / <code>captchaKey</code> 后实测：
+    </p>
+    <pre style="margin: 12px 0; background:#2b2013; color:#f5d9a8;"><code>POST /api/geetest/register
+→ { "mode": "mock", "lotNumber": "50e57e19-...", "degraded": true }</code></pre>
+    <p>
+      单独复现 <code>prepare()</code> 里那个 register 请求，极验返回 <strong>HTTP 403</strong>，
+      于是命中降级分支，<strong>前端被强制退回本地模拟滑块，真实极验根本不会加载</strong>。
+    </p>
+  </div>
+
+  <h3>排查：403 不等于 KEY 无效</h3>
+  <p>
+    换一个接口打同一对 id/key，结果完全不同：
+  </p>
+  <pre style="margin: 12px 0; background:#12261a; color:#bdf0cf;"><code>POST https://gcaptcha4.geetest.com/validate?captcha_id=…
+  （参数是伪造的）
+→ 200 { "result": "fail", "reason": "pass_token error", "status": "success" }</code></pre>
+  <p>
+    <code class="inline">status: "success"</code> 说明<strong>服务端已经受理并开始校验</strong>，
+    <code class="inline">fail</code> 只是因为参数是假的 —— 这证明 <em>id/key 这一对是有效的</em>，
+    403 并不是鉴权失败。
+  </p>
+  <p>
+    用 CDP 抓真实浏览器的网络请求，看到 <code class="inline">gt4.js</code> 实际访问的是：
+  </p>
+  <pre style="margin: 12px 0; background:#1b2333; color:#c9d8f5;"><code>GET https://gcaptcha4.geetest.com/load?captcha_id=3fcca12f…  → 200</code></pre>
+
+  <h3>根因：把探活当成了模式开关</h3>
+  <p>
+    极验 v4 的 <code class="inline">/register</code> 是给「私有化部署 / 宕机兜底」准备的可选接口，
+    SaaS 账号通常直接 403。<strong>v4 标准接入只需要服务端实现 <code class="inline">/validate</code></strong>，
+    register 由浏览器里的 <code class="inline">gt4.js</code> 自己完成（走的是 <code class="inline">/load</code>）。
+  </p>
+  <p>
+    老代码却拿 register 的返回值当模式开关，于是只要这个可选接口不可用，
+    真实极验就<strong>永远不生效</strong> —— 与「探活失败才降级」的初衷正好相反。
+  </p>
+
+  <div class="callout ok">
+    <span class="h">✓ 已采用的改法</span>
+    <p>
+      删掉 register 探活，模式只由 <code>isRealMode()</code> 决定：
+      配了 id/key 就是 <code>gt4</code>，没配（或设了 <code>GEETEST_DISABLED=1</code>）就是 <code>mock</code>。
+      改动集中在 <code>services/geetest.js:29-60</code>，同时删掉了 <code>REGISTER_API</code> 常量。
+    </p>
+  </div>
+
+  <div class="callout ok">
+    <span class="h">✓ 修复后验证</span>
+    <p>
+      <strong>真实模式</strong>：<code>gt4.js</code> 200、<code>/load</code> 200、弹层渲染 49 个 DOM 节点、
+      <code>initGeetest4</code> 为 <code>function</code>，无 JS 异常。
+    </p>
+    <p>
+      <strong>模拟模式回归</strong>（<code>$env:GEETEST_DISABLED=1</code>）：
+      浏览器 E2E 全流程通过，冒烟测试 18/18。
+    </p>
+    <p>
+      <strong>唯一未自动化的环节</strong>：真实滑块的拖动。合成事件无法通过极验的防机器人判定
+      （这正是它存在的意义），最后一步需要在真实浏览器里由人工完成。
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<section id="s7">
+  <h2 class="sec"><span class="num">7</span>关键代码位置索引</h2>
+
+  <table>
+    <thead>
+      <tr><th>功能</th><th>文件</th><th>行号</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>★ 安全验证触发点</td><td class="lnk">public/js/modules/login.js</td><td class="lnk">65</td></tr>
+      <tr><td>登录按钮回调</td><td class="lnk">public/js/modules/login.js</td><td class="lnk">52</td></tr>
+      <tr><td>验证通过后调账密接口</td><td class="lnk">public/js/modules/login.js</td><td class="lnk">68-72</td></tr>
+      <tr><td>CLOSE 静默处理</td><td class="lnk">public/js/modules/login.js</td><td class="lnk">100</td></tr>
+      <tr><td>verify() 模式分流</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">206-212</td></tr>
+      <tr><td>动态加载 gt4.js</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">19-39</td></tr>
+      <tr><td>initGeetest4 初始化</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">59-66</td></tr>
+      <tr><td>★ showCaptcha 弹窗显示</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">71-73</td></tr>
+      <tr><td>getValidate 取回参数</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">74-77</td></tr>
+      <tr><td>本地滑块构建</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">97-199</td></tr>
+      <tr><td>滑块插入 DOM + 触发动画</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">125-127</td></tr>
+      <tr><td>拖动判定 / 回弹</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">163-183</td></tr>
+      <tr><td>浮层兜底销毁</td><td class="lnk">public/js/modules/geetest.js</td><td class="lnk">41-48</td></tr>
+      <tr><td>模式判定 isRealMode()</td><td class="lnk">services/geetest.js</td><td class="lnk">29-32</td></tr>
+      <tr><td>prepare() 下发配置</td><td class="lnk">services/geetest.js</td><td class="lnk">48-60</td></tr>
+      <tr><td>★ 服务端二次校验</td><td class="lnk">services/geetest.js</td><td class="lnk">67-121</td></tr>
+      <tr><td>HMAC 生成 sign_token</td><td class="lnk">services/geetest.js</td><td class="lnk">80-83</td></tr>
+      <tr><td>票据一次性（防重放）</td><td class="lnk">services/geetest.js</td><td class="lnk">115</td></tr>
+      <tr><td>测试用「强制模拟」开关</td><td class="lnk">config/index.js</td><td class="lnk">23</td></tr>
+      <tr><td>下发验证配置的接口</td><td class="lnk">routes/api.js</td><td class="lnk">59-67</td></tr>
+      <tr><td>校验前置 + 复核</td><td class="lnk">routes/api.js</td><td class="lnk">83-96</td></tr>
+      <tr><td>滑块弹层样式 / 动画</td><td class="lnk">public/css/login.css</td><td class="lnk">.gt-mock-mask</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>
+  登录流程 Demo · 安全验证说明 · 行号对应当前工作区代码，如文件有改动请以实际为准。
+</footer>
+
+</div>
+</body>
+</html>

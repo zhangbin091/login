@@ -57,7 +57,7 @@ async function runGeetest(session) {
   const res = await session.request('/api/geetest/register', { method: 'POST', body: {} });
   const cfg = res.json.data;
   if (cfg.mode === 'gt4') {
-    throw new Error('当前为真实极验模式，请用模拟模式（不配置 GEETEST_ID/KEY）运行本脚本');
+    throw new Error('真实极验模式下无法自动构造验证参数（本应提前跳过）');
   }
   return {
     lot_number: cfg.lotNumber,
@@ -67,8 +67,28 @@ async function runGeetest(session) {
   };
 }
 
+/** 真实极验模式需要人工完成滑块，无法自动跑接口用例 */
+async function bailIfRealMode() {
+  const res = await fetch(BASE + '/api/geetest/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  const { data } = await res.json();
+
+  if (data.mode === 'gt4') {
+    console.log('当前为【真实极验模式】（已配置 GEETEST_ID / GEETEST_KEY）。');
+    console.log('接口用例需要真实的极验 token，无法自动构造，已跳过。\n');
+    console.log('如需运行本测试，请切回模拟模式后再启动服务：');
+    console.log('  PowerShell:  $env:GEETEST_DISABLED=1; npm start');
+    console.log('  bash:        GEETEST_DISABLED=1 npm start\n');
+    process.exit(0);
+  }
+}
+
 async function main() {
   console.log(`\n冒烟测试 -> ${BASE}\n`);
+  await bailIfRealMode();
 
   // ---------------------------------------------------------- 正常流程
   console.log('【正常流程】');
