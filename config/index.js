@@ -15,8 +15,8 @@ module.exports = {
    * 申请地址：https://www.geetest.com/
    */
   geetest: {
-    captchaId: process.env.GEETEST_ID || '',
-    captchaKey: process.env.GEETEST_KEY || '',
+    captchaId: process.env.GEETEST_ID || '3fcca12fad61a25061886999c1b57310',
+    captchaKey: process.env.GEETEST_KEY || '3227d058da508d151a0a9d5b1dcf5d01',
     // gt4.js 的加载地址，真实模式下前端会动态加载它
     scriptUrl: process.env.GEETEST_SCRIPT_URL || 'https://static.geetest.com/v4/gt4.js',
     // 模拟验证时，一次 lot_number 的有效期
